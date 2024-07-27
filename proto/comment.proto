@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package comment;
+
+import "auth.proto";
+
+message Comment {
+  string id = 1;
+  string content = 2;
+  string postId = 3;
+  string userId = 4;
+  string parentId = 5;
+  string createdAt = 6;
+  auth.User user = 7; 
+  repeated Comment replies = 8;
+}
+
+service CommentService {
+  rpc AddComment (AddCommentRequest) returns (AddCommentResponse) {};
+  rpc ReplyToComment (ReplyToCommentRequest) returns (ReplyToCommentResponse) {};
+  rpc GetCommentsByPostId (GetCommentsByPostIdRequest) returns (GetCommentsByPostIdResponse) {};
+}
+
+message AddCommentRequest {
+  string postId = 1;
+  string content = 2;
+  string userId = 3;
+}
+
+message AddCommentResponse {
+  Comment comment = 1;
+}
+
+message ReplyToCommentRequest {
+  string commentId = 1;
+  string content = 2;
+  string userId = 3;
+}
+
+message ReplyToCommentResponse {
+  Comment comment = 1;
+}
+
+message GetCommentsByPostIdRequest {
+  string postId = 1;
+}
+
+message GetCommentsByPostIdResponse {
+  repeated Comment comments = 1;
+}

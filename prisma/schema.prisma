@@ -1,0 +1,82 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  imageId   String?
+  picture   Image?      @relation(fields: [imageId], references: [id])
+  posts     Post[]
+  comments  Comment[]
+  votes     Vote[]
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  content     String
+  viewCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  comments    Comment[]
+  images      Image[]
+  upvotes     Int       @default(0)
+  downvotes   Int       @default(0)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories  PostCategory[]
+  votes       Vote[]
+}
+
+model Comment {
+  id         String    @id @default(uuid())
+  content    String
+  createdAt  DateTime  @default(now())
+  postId     String
+  post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId   String? 
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentReplies")
+}
+
+model Image {
+  id        String   @id @default(uuid())
+  userId    String
+  metadata  Json
+  createdAt DateTime @default(now())
+  users     User[]
+  posts     Post[]
+}
+
+model Category {
+  id    String  @id @default(uuid())
+  name  String  @unique
+  posts PostCategory[]
+}
+
+model PostCategory {
+  postId     String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  @@id([postId, categoryId])
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  value     Int      
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@unique([userId, postId])
+}
