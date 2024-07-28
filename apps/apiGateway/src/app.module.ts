@@ -8,10 +8,10 @@ import { PostModule } from './post/post.module';
   imports: [UsersModule, PostModule],
   controllers: [],
   providers: [
-    // {
-    //   provide: APP_INTERCEPTOR,
-    //   useClass: UserInterceptor,
-    // },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserInterceptor,
+    },
     {
       provide: 'APP_FILTER',
       useClass: AllExceptionsFilter,
@@ -19,3 +19,4 @@ import { PostModule } from './post/post.module';
   ],
 })
 export class AppModule {}
+//

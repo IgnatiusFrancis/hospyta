@@ -4,79 +4,42 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { status } from '@grpc/grpc-js';
-import {
-  PrismaClientKnownRequestError,
-  PrismaClientUnknownRequestError,
-} from '@prisma/client/runtime/library';
-
-interface ExceptionResponse {
-  statusCode: number;
-  message: string;
-  error: string;
-}
+import { Response } from 'express';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost): void {
-    const ctx = host.switchToRpc().getContext();
-    const call = ctx.args[0]; // The gRPC call object
+  private readonly logger = new Logger(AllExceptionsFilter.name);
 
-    const httpStatus =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string;
 
-    let exceptionResponse: ExceptionResponse;
-
-    if (exception instanceof HttpException) {
-      exceptionResponse = {
-        statusCode: httpStatus,
-        message: exception.message,
-        error:
-          (exception.getResponse() as any).message || 'Internal server error',
-      };
-    } else if (exception instanceof PrismaClientKnownRequestError) {
-      exceptionResponse = {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Database error occurred',
-        error: 'Prisma Client Known Request Error',
-      };
-    } else if (exception instanceof PrismaClientUnknownRequestError) {
-      exceptionResponse = {
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Unknown database error occurred',
-        error: 'Prisma Client Unknown Request Error',
-      };
-    } else if (exception instanceof RpcException) {
-      exceptionResponse = {
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: exception.message,
-        error: 'gRPC error',
-      };
+    if (exception instanceof RpcException) {
+      const rpcMessage = exception.getError();
+      message =
+        typeof rpcMessage === 'object'
+          ? (rpcMessage as any).message
+          : rpcMessage;
+      status = HttpStatus.BAD_REQUEST;
+    } else if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      message = exception.message;
     } else {
-      exceptionResponse = {
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Internal server error',
-        error: 'Internal server error',
-      };
+      message = (exception as Error).message || 'Internal server error';
     }
 
-    // Log the error for debugging purposes
-    console.error({
-      success: false,
-      statusCode: httpStatus,
-      timestamp: new Date().toISOString(),
-      message: exceptionResponse.message,
-      errorResponse: exceptionResponse,
-    });
+    this.logger.error(`HTTP Status: ${status} Error Message: ${message}`);
 
-    // Send the error response
-    call.emit('error', {
-      code: status.UNKNOWN,
-      message: exceptionResponse.message,
-    });
+    return {
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      message,
+    };
   }
 }

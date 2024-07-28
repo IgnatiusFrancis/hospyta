@@ -4,7 +4,9 @@ import { PostController } from './post.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { POST_SERVICE } from './constant';
 import { join } from 'path';
-import { POST_PACKAGE_NAME } from '@app/common';
+import { POST_PACKAGE_NAME, PrismaService } from '@app/common';
+import { JwtAuthService } from '@app/common/utils';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -20,6 +22,6 @@ import { POST_PACKAGE_NAME } from '@app/common';
     ]),
   ],
   controllers: [PostController],
-  providers: [PostService],
+  providers: [PostService, JwtAuthService, ConfigService, PrismaService],
 })
 export class PostModule {}
