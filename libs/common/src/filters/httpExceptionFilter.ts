@@ -36,6 +36,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     this.logger.error(`HTTP Status: ${status} Error Message: ${message}`);
 
+    console.log(message);
     return {
       statusCode: status,
       timestamp: new Date().toISOString(),

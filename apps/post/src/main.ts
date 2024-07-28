@@ -3,7 +3,7 @@ import { PostModule } from './post.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { join } from 'path';
 import { ValidationPipe } from '@nestjs/common';
-import { POST_PACKAGE_NAME } from '@app/common';
+import { AllExceptionsFilter, POST_PACKAGE_NAME } from '@app/common';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
@@ -25,6 +25,7 @@ async function bootstrap() {
       },
     }),
   );
+  app.useGlobalFilters(new AllExceptionsFilter());
   await app.listen();
 }
 bootstrap();
