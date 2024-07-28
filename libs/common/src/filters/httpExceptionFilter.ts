@@ -5,13 +5,14 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { HttpAdapterHost } from '@nestjs/core';
+import { RpcException } from '@nestjs/microservices';
+import { status } from '@grpc/grpc-js';
 import {
   PrismaClientKnownRequestError,
   PrismaClientUnknownRequestError,
 } from '@prisma/client/runtime/library';
 
-export interface HttpExceptionResponse {
+interface ExceptionResponse {
   statusCode: number;
   message: string;
   error: string;
@@ -19,58 +20,63 @@ export interface HttpExceptionResponse {
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(
-    private readonly httpAdapterHost: HttpAdapterHost,
-  ) {}
-
   catch(exception: unknown, host: ArgumentsHost): void {
-    const { httpAdapter } = this.httpAdapterHost;
-    const ctx = host.switchToHttp();
+    const ctx = host.switchToRpc().getContext();
+    const call = ctx.args[0]; // The gRPC call object
+
     const httpStatus =
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    let exceptionResponse: any;
+    let exceptionResponse: ExceptionResponse;
+
     if (exception instanceof HttpException) {
-      exceptionResponse = exception.getResponse();
+      exceptionResponse = {
+        statusCode: httpStatus,
+        message: exception.message,
+        error:
+          (exception.getResponse() as any).message || 'Internal server error',
+      };
     } else if (exception instanceof PrismaClientKnownRequestError) {
       exceptionResponse = {
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Something went wrong, try again',
-        error: 'Something went wrong, try again',
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Database error occurred',
+        error: 'Prisma Client Known Request Error',
       };
     } else if (exception instanceof PrismaClientUnknownRequestError) {
       exceptionResponse = {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Something went wrong, try again',
-        error: 'Something went wrong, try again',
+        message: 'Unknown database error occurred',
+        error: 'Prisma Client Unknown Request Error',
+      };
+    } else if (exception instanceof RpcException) {
+      exceptionResponse = {
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: exception.message,
+        error: 'gRPC error',
       };
     } else {
-      exceptionResponse = String(exception);
+      exceptionResponse = {
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Internal server error',
+        error: 'Internal server error',
+      };
     }
 
-    const responseBody = {
+    // Log the error for debugging purposes
+    console.error({
       success: false,
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
-      path: httpAdapter.getRequestUrl(ctx.getRequest()),
-      message:
-        (exceptionResponse as HttpExceptionResponse).error ||
-        (exceptionResponse as HttpExceptionResponse).message ||
-        exceptionResponse ||
-        'Something went wrong',
-      errorResponse: exceptionResponse as HttpExceptionResponse,
-    };
+      message: exceptionResponse.message,
+      errorResponse: exceptionResponse,
+    });
 
-    // Log the exception
-    // this.logger.error(
-    //   'Exception thrown',
-    //   exception instanceof Error ? exception.stack : String(exception),
-    //   'ExceptionFilter',
-    //   'Global',
-    // );
-
-    httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
+    // Send the error response
+    call.emit('error', {
+      code: status.UNKNOWN,
+      message: exceptionResponse.message,
+    });
   }
 }

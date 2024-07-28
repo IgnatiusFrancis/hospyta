@@ -1,20 +1,28 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
+  Patch,
+  Param,
+  Delete,
   UseInterceptors,
   UploadedFile,
   ParseFilePipeBuilder,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { LoginRequest, CreateUserRequest } from '@app/common/types/auth';
+import { PostService } from './post.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CreatePostRequest } from '@app/common/types/post';
+import { CurrentUser, JwtGuard } from '@app/common';
+import { User } from '@prisma/client';
 
-@Controller('users')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+@Controller('post')
+export class PostController {
+  constructor(private readonly postService: PostService) {}
 
+  @UseGuards(JwtGuard)
   @Post('create')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
@@ -32,13 +40,14 @@ export class UsersController {
         }),
     )
     file: Express.Multer.File,
-    @Body() createUserRequest: CreateUserRequest,
+    @Body() createPostRequest: CreatePostRequest,
+    @CurrentUser() user: User,
   ) {
-    return this.usersService.create(createUserRequest, file);
+    return this.postService.create(user.id, createPostRequest, file);
   }
 
-  @Post('login')
-  login(@Body() loginRequest: LoginRequest) {
-    return this.usersService.login(loginRequest);
-  }
+  // @Get()
+  // findAll() {
+  //   return this.postService.findAll();
+  // }
 }

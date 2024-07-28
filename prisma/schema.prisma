@@ -26,12 +26,13 @@ model Post {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   userId      String
-  comments    Comment[]
-  images      Image[]
+  comments    Comment[] 
+  imageId   String?
+  image      Image?      @relation(fields: [imageId], references: [id])
   upvotes     Int       @default(0)
   downvotes   Int       @default(0)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categories  PostCategory[]
+  categories  String[]  @default([])
   votes       Vote[]
 }
 
@@ -51,24 +52,10 @@ model Comment {
 model Image {
   id        String   @id @default(uuid())
   userId    String
-  metadata  Json
+  url       String
   createdAt DateTime @default(now())
   users     User[]
   posts     Post[]
-}
-
-model Category {
-  id    String  @id @default(uuid())
-  name  String  @unique
-  posts PostCategory[]
-}
-
-model PostCategory {
-  postId     String
-  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  @@id([postId, categoryId])
 }
 
 model Vote {

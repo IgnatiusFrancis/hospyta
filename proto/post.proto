@@ -8,14 +8,14 @@ service PostService {
   rpc CreatePost (CreatePostRequest) returns (CreatePostResponse) {};
   rpc EditPost (EditPostRequest) returns (EditPostResponse) {};
   rpc DeletePost (DeletePostRequest) returns (DeletePostResponse) {};
-  rpc ListPosts (ListPostsRequest) returns (ListPostsResponse) {};
+  rpc ListPosts (Empty) returns (ListPostsResponse) {};
   rpc GetPostById (GetPostByIdRequest) returns (GetPostByIdResponse) {};
 }
 
 message CreatePostRequest {
   string content = 1;
-  string image = 2;
-  string category = 3;
+  string image = 2; 
+  repeated string categories = 3;
   string userId = 4;
 }
 
@@ -26,16 +26,17 @@ message CreatePostResponse {
 message EditPostRequest {
   string id = 1;
   string content = 2;
-  string image = 3;
-  string category = 4;
+  repeated string categories = 3;
+  string userId = 4; 
 }
 
 message EditPostResponse {
-  Post post = 1;
+  Edit edit = 1;
 }
 
 message DeletePostRequest {
   string id = 1;
+  string userId = 2; 
 }
 
 message DeletePostResponse {
@@ -54,20 +55,38 @@ message ListPostsResponse {
 
 message GetPostByIdRequest {
   string id = 1;
+  string userId = 2; 
 }
 
 message GetPostByIdResponse {
   Post post = 1;
 }
 
+
+message Empty {}
+
 message Post {
   string id = 1;
   string content = 2;
-  string image = 3;
-  string category = 4;
-  auth.User user = 5; 
+  Image image = 3;
+  repeated string categories = 4;
+  auth.User user = 5;
   string createdAt = 6;
   string updatedAt = 7;
   int32 upvotes = 8;
   int32 downvotes = 9;
+}
+
+message Image {
+  string id = 1;
+  string userId = 2;
+  string url = 3;
+  string createdAt = 4;
+}
+
+message Edit {
+  string id = 1;
+  string content = 2;
+  repeated string categories = 3;
+  auth.User user = 4;
 }

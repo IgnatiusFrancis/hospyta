@@ -1,9 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  OnModuleInit,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '@app/common/prisma/prisma.service';
 import {
   CreateUserRequest,
@@ -17,6 +12,7 @@ import { Image, User } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
 import toStream = require('buffer-to-stream');
 import { UploadApiErrorResponse, UploadApiResponse } from 'cloudinary';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -32,35 +28,43 @@ export class UsersService implements OnModuleInit {
     file?: Express.Multer.File,
   ): Promise<CreateUserResponse> {
     try {
-      console.log(createUserRequest);
+      // Check if the user already exists
       await this.checkUserExists(createUserRequest.email);
 
+      // Hash the user's password
       const hashedPassword = await bcrypt.hash(createUserRequest.password, 10);
 
       let result;
       if (file) {
+        // Upload the file to Cloudinary and get the result
         result = await this.uploadToCloudinary(file);
       }
 
-      let image: Image;
+      let image: Image | null = null;
       if (result) {
+        // Create an image entry in the database with the URL from Cloudinary
         image = await this.prismaService.image.create({
           data: {
             userId: '',
-            metadata: result,
+            url: result.url,
           },
         });
       }
 
       const imageId = image?.id;
+
+      // Create the new user
       const newUser = await this.signupUser(
         createUserRequest.email,
         createUserRequest.name,
         hashedPassword,
         imageId,
       );
+
+      // Format and return the response
       return this.formatSignupResponse(newUser);
     } catch (error) {
+      // Handle errors
       throw error;
     }
   }
@@ -95,10 +99,8 @@ export class UsersService implements OnModuleInit {
     });
 
     if (existingUser) {
-      throw new HttpException(
-        'User with this email already exists',
-        HttpStatus.CONFLICT,
-      );
+      //throw new RpcException('Invalid credentials.');
+      throw new RpcException('User with this email already exists');
     }
   }
 
@@ -120,7 +122,7 @@ export class UsersService implements OnModuleInit {
 
   private checkUserExistence(user: User | null) {
     if (!user) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      throw new RpcException('User not found');
     }
   }
 
@@ -128,10 +130,7 @@ export class UsersService implements OnModuleInit {
     const isPasswordMatch = await bcrypt.compare(password, hashedPassword);
 
     if (!isPasswordMatch) {
-      throw new HttpException(
-        'Invalid email or password',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new RpcException('Invalid email or password');
     }
   }
 

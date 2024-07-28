@@ -14,7 +14,7 @@ export const protobufPackage = 'post';
 export interface CreatePostRequest {
   content: string;
   image: string;
-  category: string;
+  categories: string[];
   userId: string;
 }
 
@@ -25,16 +25,17 @@ export interface CreatePostResponse {
 export interface EditPostRequest {
   id: string;
   content: string;
-  image: string;
-  category: string;
+  categories: string[];
+  userId: string;
 }
 
 export interface EditPostResponse {
-  post: Post | undefined;
+  edit: Edit | undefined;
 }
 
 export interface DeletePostRequest {
   id: string;
+  userId: string;
 }
 
 export interface DeletePostResponse {
@@ -53,22 +54,39 @@ export interface ListPostsResponse {
 
 export interface GetPostByIdRequest {
   id: string;
+  userId: string;
 }
 
 export interface GetPostByIdResponse {
   post: Post | undefined;
 }
 
+export interface Empty {}
+
 export interface Post {
   id: string;
   content: string;
-  image: string;
-  category: string;
+  image: Image | undefined;
+  categories: string[];
   user: User | undefined;
   createdAt: string;
   updatedAt: string;
   upvotes: number;
   downvotes: number;
+}
+
+export interface Image {
+  id: string;
+  userId: string;
+  url: string;
+  createdAt: string;
+}
+
+export interface Edit {
+  id: string;
+  content: string;
+  categories: string[];
+  user: User | undefined;
 }
 
 export const POST_PACKAGE_NAME = 'post';
@@ -80,7 +98,7 @@ export interface PostServiceClient {
 
   deletePost(request: DeletePostRequest): Observable<DeletePostResponse>;
 
-  listPosts(request: ListPostsRequest): Observable<ListPostsResponse>;
+  listPosts(request: Empty): Observable<ListPostsResponse>;
 
   getPostById(request: GetPostByIdRequest): Observable<GetPostByIdResponse>;
 }
@@ -108,7 +126,7 @@ export interface PostServiceController {
     | DeletePostResponse;
 
   listPosts(
-    request: ListPostsRequest,
+    request: Empty,
   ):
     | Promise<ListPostsResponse>
     | Observable<ListPostsResponse>

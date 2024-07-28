@@ -7,7 +7,7 @@
 /* eslint-disable */
 import { GrpcMethod, GrpcStreamMethod } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
-import { User } from '../../../../auth';
+import { User } from './auth';
 
 export const protobufPackage = 'comment';
 
