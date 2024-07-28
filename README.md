@@ -94,5 +94,3 @@ For any inquiries, please reach out to:
 - **Name: Ignatius Francis**
 - **Email: obiignatiusfrancis@outlook.com**
 - **GitHub: IgnatiusFrancis**
-
-Feel free to explore the API and refer to the [API Documentation](https://documenter.getpostman.com/view/19595090/2sA3kUHhaE) for detailed information on each endpoint and their functionalities.
